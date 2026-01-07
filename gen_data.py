@@ -8,7 +8,7 @@ dotenv.load_dotenv()
 
 FPT_KEY = os.getenv("FPT_KEY")
 BASE_URL = 'https://mkp-api.fptcloud.com'
-MODEL_NAME = 'gpt-oss-120b'
+MODEL_NAME = 'gemma-3-27b-it'
 
 def client_init(api_key, base_url):
     """Khởi tạo client để gọi API từ FPT Marketplace"""
@@ -104,16 +104,18 @@ def calculate_average_length(json_file):
     with open('filtered_' + json_file, 'w', encoding='utf-8') as f:
         json.dump(new_data, f, ensure_ascii=False, indent=4)
 if __name__ == "__main__":
-    json_file = 'new_data.json'
-    calculate_average_length(json_file)
-    d
+    # json_file = 'new_data.json'
+    # calculate_average_length(json_file)
+    
     client = client_init(FPT_KEY, BASE_URL)
     dataset = load_dataset('OpenHust/vietnamese-summarization')
     train_data = dataset['train']
 
     # select subset with document length < 700 words and > 600 words
     train_data = train_data.filter(lambda x: len(x['Document'].split()) < 750 and len(x['Document'].split()) > 650)
-    train_data = train_data.select(range(100))
+    print(len(train_data))
+    
+    train_data = train_data.select(range(500))
     # calculate averaghe length of document and summary
     total_doc_len = sum(len(doc.split()) for doc in train_data['Document'])
     total_summary_len = sum(len(summary.split()) for summary in train_data['Summary'])
@@ -128,7 +130,7 @@ if __name__ == "__main__":
     original_gt_len = []
     new_gt_len = []
     
-    MAX_WORKERS = 1 
+    MAX_WORKERS = 8
     with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         # Tạo danh sách các task
         futures = {executor.submit(process_single_item, idx, doc, MODEL_NAME, client): idx for idx, doc in enumerate(documents)}
@@ -148,7 +150,7 @@ if __name__ == "__main__":
     for item in new_data:
         del item['Original_Idx']
 
-    with open('new_data_seq2seq.json', 'w', encoding='utf-8') as f:
+    with open('eval_ver2.json', 'w', encoding='utf-8') as f:
         json.dump(new_data, f, ensure_ascii=False, indent=4)
     if original_gt_len:
         print(f'Original GT length: {sum(original_gt_len)/len(original_gt_len)}')
